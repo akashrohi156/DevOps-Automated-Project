@@ -1,15 +1,32 @@
 pipeline {
-  agent any
-  stages {
-    stage('Clone Repo') {
-      steps {
-        git 'https://github.com/akashrohi156/DevOps-Automated-Project.git'
-      }
+    agent any
+
+    environment {
+        ANSIBLE_HOST_KEY_CHECKING = 'False'
     }
-    stage('Deploy Backend via Ansible') {
-      steps {
-        sh 'ansible-playbook -i ansible/inventory.ini ansible/backend-deploy.yml'
-      }
+
+    stages {
+        stage('Clone Backend Repo') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/akashrohi156/DevOps-Automated-Project.git'
+            }
+        }
+
+        stage('Install Dependencies') {
+            steps {
+                dir('backend') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Deploy Backend') {
+            steps {
+                sh '''
+                ansible-playbook -i ansible/inventory.ini ansible/deploy-backend.yml
+                '''
+            }
+        }
     }
-  }
 }
