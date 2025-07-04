@@ -24,7 +24,7 @@ pipeline {
         stage('Deploy Backend') {
             steps {
                 sh '''
-                ansible-playbook -i ansible/inventory.ini ansible/deploy-backend.yml
+                ansible-playbook -i ansible/inventory.ini ansible/backend-deploy.yml
                 '''
             }
         }
