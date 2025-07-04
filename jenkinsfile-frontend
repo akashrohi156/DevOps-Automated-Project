@@ -1,0 +1,15 @@
+pipeline {
+  agent any
+  stages {
+    stage('Clone Repo') {
+      steps {
+        git 'https://github.com/<your-username>/DevOps-Automated-Project.git'
+      }
+    }
+    stage('Deploy Frontend via Ansible') {
+      steps {
+        sh 'ansible-playbook -i ansible/inventory.ini ansible/frontend-deploy.yml'
+      }
+    }
+  }
+}
