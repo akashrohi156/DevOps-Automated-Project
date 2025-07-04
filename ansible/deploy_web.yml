@@ -1,0 +1,86 @@
+---
+- name: Deploy Frontend and Backend to Web Server
+  hosts: web
+  become: true
+
+  vars:
+    frontend_src: ../frontend
+    frontend_dest: /var/www/html
+    backend_src: ../backend
+    backend_dest: /opt/backend
+
+  tasks:
+
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install Node.js and npm
+      apt:
+        name:
+          - nodejs
+          - npm
+        state: present
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Enable and start Nginx
+      systemd:
+        name: nginx
+        enabled: yes
+        state: started
+
+    - name: Copy frontend files to Nginx root
+      copy:
+        src: "{{ frontend_src }}/"
+        dest: "{{ frontend_dest }}/"
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Create backend directory
+      file:
+        path: "{{ backend_dest }}"
+        state: directory
+
+    - name: Copy backend files
+      copy:
+        src: "{{ backend_src }}/"
+        dest: "{{ backend_dest }}/"
+        owner: ubuntu
+        mode: '0755'
+
+    - name: Install backend dependencies
+      npm:
+        path: "{{ backend_dest }}"
+
+    - name: Create systemd service for backend
+      copy:
+        dest: /etc/systemd/system/backend.service
+        content: |
+          [Unit]
+          Description=Backend Node.js Service
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/node {{ backend_dest }}/app.js
+          Restart=always
+          User=ubuntu
+          Environment=PORT=3000
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Start and enable backend service
+      systemd:
+        name: backend
+        state: started
+        enabled: yes
+
