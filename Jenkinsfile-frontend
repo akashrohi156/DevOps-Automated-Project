@@ -3,7 +3,7 @@ pipeline {
   stages {
     stage('Clone Repo') {
       steps {
-        git 'https://github.com/<your-username>/DevOps-Automated-Project.git'
+        git 'https://github.com/akashrohi156/DevOps-Automated-Project.git'
       }
     }
     stage('Deploy Frontend via Ansible') {
