@@ -1,0 +1,73 @@
+- name: Install and secure MySQL on DB server
+  hosts: db
+  become: true
+  vars:
+    mysql_root_password: "StrongRoot@123"
+    db_name: "devops_project"
+    db_user: "devops_user"
+    db_user_password: "DevOps@123"
+
+  tasks:
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: true
+
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: true
+
+    - name: Install PyMySQL for Ansible to talk to MySQL
+      apt:
+        name: python3-pymysql
+        state: present
+        update_cache: true
+
+    - name: Remove anonymous users
+      shell: >
+        mysql -uroot -e "DELETE FROM mysql.user WHERE User='';"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Disallow root login remotely
+      shell: >
+        mysql -uroot -e "UPDATE mysql.user SET Host='localhost' WHERE User='root';"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Remove test database
+      shell: >
+        mysql -uroot -e "DROP DATABASE IF EXISTS test;"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Set root password and update auth plugin
+      shell: >
+        mysql -uroot -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}'; FLUSH PRIVILEGES;"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Create application database
+      mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create application user and grant privileges
+      mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_user_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        host: "%"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+

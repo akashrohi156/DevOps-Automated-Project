@@ -1,0 +1,80 @@
+- name: Install and secure MySQL on DB server
+  hosts: db
+  become: true
+  vars:
+    mysql_root_password: "StrongRoot@123"
+    db_name: "devops_project"
+    db_user: "devops_user"
+    db_user_password: "DevOps@123"
+
+  tasks:
+    - name: Install MySQL server
+      apt:
+        name: mysql-server
+        state: present
+        update_cache: yes
+
+    - name: Ensure MySQL is running
+      service:
+        name: mysql
+        state: started
+        enabled: yes
+
+    - name: Install PyMySQL for Ansible to talk to MySQL
+      apt:
+        name: python3-pymysql
+        state: present
+
+    - name: Set root password (only if not already set)
+      mysql_user:
+        name: root
+        host: localhost
+        password: "{{ mysql_root_password }}"
+        login_unix_socket: /run/mysqld/mysqld.sock
+        check_implicit_admin: true
+        priv: "*.*:ALL,GRANT"
+        state: present
+
+    - name: Remove anonymous users
+      mysql_user:
+        name: ''
+        host_all: yes
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Disallow root remote login
+      mysql_user:
+        name: root
+        host: "{{ item }}"
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+      loop:
+        - "{{ ansible_host }}"
+        - '%'
+
+    - name: Remove test database
+      mysql_db:
+        name: test
+        state: absent
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create application database
+      mysql_db:
+        name: "{{ db_name }}"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
+    - name: Create application DB user and grant privileges
+      mysql_user:
+        name: "{{ db_user }}"
+        password: "{{ db_user_password }}"
+        priv: "{{ db_name }}.*:ALL"
+        host: "%"
+        state: present
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+
