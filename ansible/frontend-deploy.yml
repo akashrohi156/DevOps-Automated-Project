@@ -1,0 +1,33 @@
+---
+- name: Deploy frontend application
+  hosts: web
+  become: yes
+  tasks:
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Clone frontend code
+      git:
+        repo: https://github.com/akashrohi156/DevOps-Automated-Project.git
+        dest: /opt/frontend
+        version: main
+        force: yes
+
+    - name: Copy frontend files to Nginx root
+      copy:
+        src: /opt/frontend/frontend/
+        dest: /var/www/html/
+        owner: www-data
+        group: www-data
+        mode: 0755
+        remote_src: yes
+
+    - name: Start and enable Nginx
+      systemd:
+        name: nginx
+        enabled: yes
+        state: restarted
+

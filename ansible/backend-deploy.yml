@@ -1,0 +1,57 @@
+---
+- name: Deploy backend application
+  hosts: web
+  become: yes
+  tasks:
+    - name: Ensure Node.js is installed
+      apt:
+        name: nodejs
+        state: present
+      tags: node
+
+    - name: Ensure npm is installed
+      apt:
+        name: npm
+        state: present
+      tags: node
+
+    - name: Clone backend code
+      git:
+        repo: https://github.com/akashrohi156/DevOps-Automated-Project.git
+        dest: /opt/backend
+        version: main
+        force: yes
+
+    - name: Install backend dependencies
+      npm:
+        path: /opt/backend/backend
+        state: present
+
+    - name: Create systemd service for backend
+      copy:
+        dest: /etc/systemd/system/backend.service
+        content: |
+          [Unit]
+          Description=Backend Node.js Service
+          After=network.target
+
+          [Service]
+          ExecStart=/usr/bin/node /opt/backend/backend/app.js
+          Restart=always
+          User=ubuntu
+          Environment=PORT=3000
+          WorkingDirectory=/opt/backend/backend
+
+          [Install]
+          WantedBy=multi-user.target
+
+    - name: Reload systemd
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start backend service
+      systemd:
+        name: backend
+        enabled: yes
+        state: restarted
+
